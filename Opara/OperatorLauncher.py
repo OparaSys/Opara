@@ -3,9 +3,9 @@ from operator import mul
 from Opara import ModelProfiler
 
 import os
-# path = os.path.abspath(os.path.dirname(__file__))
-# output_file_path = path + '/output.txt'
-# output_file = open(output_file_path, "w")
+path = os.path.abspath(os.path.dirname(__file__))
+output_file_path = path + '/profile_result/output.txt'
+output_file = open(output_file_path, "w")
 
 
 def launch(nodes, result, in_degree, sharedMemPerBlock, regsPerBlock, maxThreadsPerBlock):
@@ -21,9 +21,6 @@ def launch(nodes, result, in_degree, sharedMemPerBlock, regsPerBlock, maxThreads
                 thread_num = reduce(mul, nodes[node_name].info[0]["args"]["block"]) / maxThreadsPerBlock
                 registers_num = thread_num * nodes[node_name].info[0]["args"]["registers per thread"] / regsPerBlock
                 request = [shared_memory, thread_num, registers_num]
-                # metric = max(shared_memory, max(thread_num, registers_num))
-                # metric = thread_num
-                # metric = achieved_occupancy
                 metric = shared_memory
                 if metric < min_metric:
                     min_metric = metric
@@ -117,7 +114,7 @@ def get_resource_from_json(path):
             dur = kernel_event["dur"]
             est_achieved_occupancy += kernel_event["args"]["est. achieved occupancy %"] * dur
     est_achieved_occupancy = est_achieved_occupancy / sum_time
-
+    print("est_achieved_occupancy", est_achieved_occupancy)
     sharedMemPerBlock = data['deviceProperties'][0]['sharedMemPerBlock']
     regsPerBlock = data['deviceProperties'][0]['regsPerBlock']
     maxThreadsPerBlock = data['deviceProperties'][0]['maxThreadsPerBlock']
@@ -134,19 +131,20 @@ def get_topo(fx_nodes, sharedMemPerBlock, regsPerBlock, maxThreadsPerBlock):
             in_degree[node.name] += 1
     visited = set()
     result = []
-
+    # print("fx_nodes", nodes.keys(), file=output_file)
     result = launch(nodes, result, in_degree, sharedMemPerBlock, regsPerBlock, maxThreadsPerBlock)
+
     return result, nodes
 
-def recompile(graph_module, inputs):
+def recompile(model_class_name, graph_module, inputs):
     
     path = os.path.abspath(os.path.dirname(__file__))
-    inputs_name = graph_module.__class__.__name__
+    # model_class_name = graph_module.__class__.__name__
     for i in inputs:
-        inputs_name += str(i.shape) + "_"
-    path += "/profile_result/" + inputs_name + ".pt.trace.json"
+        model_class_name += "_" + str(i.shape)
+    path += "/profile_result/" + model_class_name + ".pt.trace.json"
     if os.path.exists(path) is False:
-        ModelProfiler.profile(graph_module, inputs)
+        ModelProfiler.profile(graph_module, inputs, path)
     node2kernels, sharedMemPerBlock, regsPerBlock, maxThreadsPerBlock = get_resource_from_json(path)
 
     for i, node in enumerate(graph_module.graph.nodes):

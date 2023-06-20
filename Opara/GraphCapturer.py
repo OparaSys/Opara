@@ -1,9 +1,13 @@
 import torch
-from torch.fx import symbolic_trace, graph_module, Interpreter
+from torch.fx import Interpreter
 import torch._dynamo as dynamo
 from Opara import OperatorLauncher
 from Opara import StreamAllocator
-
+from torch._functorch.partitioners import draw_graph
+import os
+path = os.path.abspath(os.path.dirname(__file__))
+output_file_path = path + '/profile_result/output.txt'
+output_file = open(output_file_path, "w")
 
 class Scheduler(Interpreter):
     def run_node(self, n):
@@ -77,26 +81,26 @@ def capturer(inputs, model, copy_outputs: bool = False):
     assert isinstance(inputs, (list, tuple)), f"inputs is of type {type(inputs)} instead of list"
     static_inputs = [torch.zeros_like(x, device='cuda') for x in inputs]
 
-    # dynamo.reset()
-    # explanation, out_guards, graphs, ops_per_graph, break_reasons, explanation_verbose = dynamo.explain(model, *inputs)
-    # symbolic_traced = graphs[0]
-    symbolic_traced = symbolic_trace(model)
-    # symbolic_traced = dynamo.export(model, *inputs)[0]
-    symbolic_traced.cuda()
+    dynamo.reset()
+    explanation, out_guards, graphs, ops_per_graph, break_reasons, explanation_verbose = dynamo.explain(model, *inputs)
+    fx_module = graphs[0]
+    # print(fx_module.graph, file=output_file)
+    fx_module.cuda()
+    model_class_name = model.__class__.__name__
+    OperatorLauncher.recompile(model_class_name, fx_module, inputs)
 
-    OperatorLauncher.recompile(symbolic_traced, inputs)
-
-    all_streams, all_events = StreamAllocator.assign_stream(symbolic_traced.graph)
+    all_streams, all_events = StreamAllocator.assign_stream(fx_module.graph)
 
     all_events = [torch.cuda.Event() for _ in range(len(all_streams))]
     first_stream = all_streams[0]
     first_event = all_events[0]
-    interpreter = Scheduler(symbolic_traced)
+    interpreter = Scheduler(fx_module)
+
+    # with torch.autocast(device_type='cuda', dtype=torch.float16):
 
     with torch.no_grad():
         for i in range(3):
             interpreter.run(*inputs)
-
     with torch.no_grad():
         # capture
         g = torch.cuda.CUDAGraph()
@@ -108,7 +112,7 @@ def capturer(inputs, model, copy_outputs: bool = False):
                 if i > 0:
                     stream.wait_event(first_event)
             
-            static_outputs = interpreter.run(*inputs)
+            static_outputs = interpreter.run(*static_inputs)
             
             torch.cuda.set_stream(first_stream)
             for i, event in enumerate(all_events):
