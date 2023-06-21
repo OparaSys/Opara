@@ -36,3 +36,12 @@ output = Opara(*inputs)
 ```shell
 python examples/googlenet_example.py
 ```
+output:
+```shell
+Time of native PyTorch:        3.697766415278117 ms std: 0.3182025326972793
+Time of sequential CUDA Graph: 1.9705877343813578 ms std: 0.135356647385814
+STAGE:2023-06-21 10:50:27 38128:38128 ActivityProfilerController.cpp:311] Completed Stage: Warm Up
+STAGE:2023-06-21 10:50:27 38128:38128 ActivityProfilerController.cpp:317] Completed Stage: Collection
+STAGE:2023-06-21 10:50:27 38128:38128 ActivityProfilerController.cpp:321] Completed Stage: Post Processing
+Time of Opara:                 1.161413383483887 ms std: 0.03592966765019866
+```
