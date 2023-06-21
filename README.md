@@ -18,5 +18,21 @@ pip install -r requirements.txt
 # Usage
 
 ```shell
+import torch
+import torchvision
+from Opara import GraphCapturer
+
+model = torchvision.models.googlenet().eval()
+model = model.to(device="cuda:0")
+x = torch.randint(low=0, high=256, size=(1, 3, 224, 224), dtype=torch.float32).to(device="cuda:0")
+inputs = (x,)
+# Submit DNN model and input tensors as two parameters to instantiate a model execution with parallel operator execution.
+Opara = GraphCapturer.capturer(inputs, model)
+output = Opara(*inputs)
+```
+
+# Example
+
+```shell
 python examples/googlenet_example.py
 ```
