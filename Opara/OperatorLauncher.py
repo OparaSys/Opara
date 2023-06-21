@@ -114,7 +114,6 @@ def get_resource_from_json(path):
             dur = kernel_event["dur"]
             est_achieved_occupancy += kernel_event["args"]["est. achieved occupancy %"] * dur
     est_achieved_occupancy = est_achieved_occupancy / sum_time
-    print("est_achieved_occupancy", est_achieved_occupancy)
     sharedMemPerBlock = data['deviceProperties'][0]['sharedMemPerBlock']
     regsPerBlock = data['deviceProperties'][0]['regsPerBlock']
     maxThreadsPerBlock = data['deviceProperties'][0]['maxThreadsPerBlock']
