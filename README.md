@@ -17,6 +17,7 @@ pip install -r requirements.txt
 
 # Usage
 
+The subsequent code snippet illustrates the utilization of ${Opara}$ to expedite model inference. It requires the provision of your model and the corresponding input tensors. Then you can utilize the interface ```GraphCapturer.capturer(inputs, model)```, which returns a callable. Finally, feed the callable with  input tensors that serves as a parameter to yield the inference outcome.
 ```shell
 import torch
 import torchvision
@@ -33,6 +34,7 @@ output = Opara(*inputs)
 
 # Example
 
+We provide a Python script that measures the performance of native PyTorch, sequential CudaGraph, and ${Opara}$. Execute the following command to generate the corresponding output.
 ```shell
 python examples/googlenet_example.py
 ```
